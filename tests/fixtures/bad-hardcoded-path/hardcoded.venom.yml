@@ -1,0 +1,11 @@
+name: Hardcoded paths
+vars:
+  root: "."
+
+testcases:
+  - name: Uses absolute path
+    steps:
+      - type: exec
+        script: bash /home/user/scripts/run.sh
+        assertions:
+          - result.code ShouldEqual 0

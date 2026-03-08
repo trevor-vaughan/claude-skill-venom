@@ -1,0 +1,85 @@
+{
+  "skill_name": "venom",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write Venom integration tests for a REST API with endpoints: GET /health, POST /users (accepts JSON with name and email), GET /users/:id. The API runs at http://localhost:3000.",
+      "expectations": [
+        "Creates a file ending with .venom.yml",
+        "Has name: field at top level",
+        "Has vars: block with api_url variable",
+        "Tests GET /health with status 200",
+        "Tests POST /users with JSON body and status 201",
+        "Tests GET /users/:id with status 200",
+        "Uses result.bodyjson for JSON response assertions",
+        "Every step has assertions"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create Venom tests for a CLI tool at ./bin/mytool. Test that: --version prints a version string, --help shows usage, an invalid flag returns exit code 1 with an error message, and 'mytool process input.txt' produces output.json.",
+      "expectations": [
+        "Creates a file ending with .venom.yml",
+        "Has name: and vars: fields",
+        "Uses {{.root}} or similar var for the binary path",
+        "Tests --version with ShouldContainSubstring",
+        "Tests --help with exit code 0",
+        "Tests invalid flag with exit code not 0 and error in stderr",
+        "Tests process command with readfile or exec to verify output",
+        "Every step has assertions"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to test the same validation logic against 5 different inputs. Create a Venom user executor that takes an input value and expected output, runs a validation script, and asserts the result. Then create a test suite that uses the executor for all 5 cases.",
+      "expectations": [
+        "Creates a user executor file in lib/ directory",
+        "Executor has executor:, input:, and steps: fields",
+        "Executor accepts input value and expected output parameters",
+        "Test suite has .venom.yml suffix",
+        "Test suite calls the user executor 5 times with different inputs",
+        "Does NOT use range with {{.value}} in script blocks",
+        "Every step has assertions"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Write Venom tests for a database migration tool. Test that: migrations run successfully, the schema has expected tables after migration, rollback works, and running migrations twice is idempotent.",
+      "expectations": [
+        "Creates a file ending with .venom.yml",
+        "Has name: and vars: with database connection info",
+        "Tests migration forward",
+        "Tests schema validation after migration",
+        "Tests rollback",
+        "Tests idempotency (run twice, same result)",
+        "Every step has assertions"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "i want to test my web service end to end. it has a signup flow: POST /auth/register, POST /auth/login (returns JWT), then GET /profile with the JWT in Authorization header. write venom tests for this.",
+      "expectations": [
+        "Creates a file ending with .venom.yml",
+        "Has name: and vars:",
+        "Tests register endpoint",
+        "Tests login endpoint and captures JWT token in a var",
+        "Tests profile endpoint using captured JWT in Authorization header",
+        "Steps are chained with variable passing",
+        "Every step has assertions"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Create a Venom test suite that validates configuration files. Check that config.yml exists, contains required keys (database.host, database.port, app.name), and that the port value is a number between 1024 and 65535.",
+      "expectations": [
+        "Creates a file ending with .venom.yml",
+        "Has name: and vars:",
+        "Uses readfile executor to read config file",
+        "Checks file exists",
+        "Checks for required key substrings",
+        "Validates port range with ShouldBeBetween or similar",
+        "Every step has assertions"
+      ]
+    }
+  ]
+}

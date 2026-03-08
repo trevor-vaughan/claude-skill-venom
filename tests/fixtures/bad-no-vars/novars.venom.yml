@@ -1,0 +1,9 @@
+name: Missing vars block
+
+testcases:
+  - name: Some test
+    steps:
+      - type: exec
+        script: echo "hello"
+        assertions:
+          - result.code ShouldEqual 0

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Install Venom
+        env:
+          VENOM_VERSION: v1.3.0
+        run: |
+          curl -LO https://github.com/ovh/venom/releases/download/${VENOM_VERSION}/venom.linux-amd64
+          chmod +x venom.linux-amd64
+          sudo mv venom.linux-amd64 /usr/local/bin/venom
+
+      - name: Run quality gates
+        run: task check
+
+  test-venom-latest:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Install Venom (latest)
+        run: |
+          curl -LO https://github.com/ovh/venom/releases/latest/download/venom.linux-amd64
+          chmod +x venom.linux-amd64
+          sudo mv venom.linux-amd64 /usr/local/bin/venom
+
+      - name: Run quality gates
+        run: task check

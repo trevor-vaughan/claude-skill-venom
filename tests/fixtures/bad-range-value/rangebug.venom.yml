@@ -1,0 +1,14 @@
+name: Range with value in script
+vars:
+  root: "."
+
+testcases:
+  - name: Broken range pattern
+    range:
+      - "1"
+      - "2"
+    steps:
+      - type: exec
+        script: echo "{{.value}}"
+        assertions:
+          - result.code ShouldEqual 0

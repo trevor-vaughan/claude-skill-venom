@@ -1,0 +1,118 @@
+name: CI test suite for Venom lint and fixtures
+vars:
+  root: "."
+
+testcases:
+  - name: Lint script exists and has valid syntax
+    steps:
+      - type: exec
+        script: test -f {{.root}}/.claude/skills/venom/lint.sh
+        assertions:
+          - result.code ShouldEqual 0
+      - type: exec
+        script: bash -n {{.root}}/.claude/skills/venom/lint.sh
+        assertions:
+          - result.code ShouldEqual 0
+
+  - name: Self-lint passes on project tests
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring "PASS"
+          - result.systemout ShouldNotContainSubstring "FAIL"
+
+  - name: Good fixture - basic suite passes lint
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/good-basic
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring "PASS"
+          - result.systemout ShouldNotContainSubstring "FAIL"
+
+  - name: Good fixture - suite with user executor passes lint
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/good-with-executor
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring "PASS"
+          - result.systemout ShouldNotContainSubstring "FAIL"
+
+  - name: Eval infrastructure passes lint and has valid JSON
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/evals
+        assertions:
+          - result.code ShouldEqual 0
+          - result.systemout ShouldContainSubstring "PASS"
+          - result.systemout ShouldNotContainSubstring "FAIL"
+      - type: exec
+        script: jq empty {{.root}}/evals/evals.json
+        assertions:
+          - result.code ShouldEqual 0
+
+  - name: Bad fixture - wrong file suffix detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-no-suffix
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring ".venom.yml suffix"
+
+  - name: Bad fixture - missing name detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-no-name
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "name:"
+
+  - name: Bad fixture - missing vars detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-no-vars
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "vars:"
+
+  - name: Bad fixture - missing assertions detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-no-assertions
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "assertions"
+
+  - name: Bad fixture - range with value detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-range-value
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "range"
+
+  - name: Bad fixture - hardcoded path detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-hardcoded-path
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "hardcoded"
+
+  - name: Bad fixture - executor missing fields detected
+    steps:
+      - type: exec
+        script: bash {{.root}}/.claude/skills/venom/lint.sh {{.root}}/tests/fixtures/bad-executor-missing-fields
+        assertions:
+          - result.code ShouldEqual 1
+          - result.systemout ShouldContainSubstring "FAIL"
+          - result.systemout ShouldContainSubstring "executor:"

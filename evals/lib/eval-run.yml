@@ -1,0 +1,56 @@
+executor: eval-run
+input:
+  id: ""
+  root: "."
+  test_dir: ".test-output"
+  skill_file: ".claude/skills/venom/SKILL.md"
+  lint: ".claude/skills/venom/lint.sh"
+  evals_json: "evals/evals.json"
+
+steps:
+  # Setup: create eval directory, init git
+  - type: exec
+    script: |
+      eval_dir="{{.input.test_dir}}/eval-{{.input.id}}"
+      rm -rf "$eval_dir"
+      mkdir -p "$eval_dir/.claude/skills/venom"
+      cp "{{.input.skill_file}}" "$eval_dir/.claude/skills/venom/SKILL.md"
+      cp "{{.input.lint}}" "$eval_dir/.claude/skills/venom/lint.sh"
+      chmod +x "$eval_dir/.claude/skills/venom/lint.sh"
+      cd "$eval_dir" && git init --quiet
+      echo "$eval_dir"
+    assertions:
+      - result.code ShouldEqual 0
+    vars:
+      eval_dir:
+        from: result.systemout
+
+  # Execute: run Claude CLI with the eval prompt
+  - type: exec
+    script: |
+      prompt=$(jq -r '.evals[] | select(.id == {{.input.id}}) | .prompt' "{{.input.evals_json}}")
+      cd "{{.eval_dir}}"
+      unset CLAUDECODE
+      claude -p "$prompt" \
+        --allowedTools 'Write,Read,Bash,Edit,Glob' \
+        --append-system-prompt "$(cat .claude/skills/venom/SKILL.md)" \
+        > output.log 2>&1
+    timeout: 300
+    assertions:
+      - result.code ShouldEqual 0
+
+  # Lint check: run lint.sh against generated output
+  - type: exec
+    script: bash "{{.input.lint}}" "{{.eval_dir}}"
+    assertions:
+      - result.code ShouldEqual 0
+
+  # Verify: at least one .venom.yml file was created
+  - type: exec
+    script: find "{{.eval_dir}}" -name "*.venom.yml" -not -path "*/.claude/*" | wc -l
+    assertions:
+      - result.code ShouldEqual 0
+      - result.systemout ShouldNotEqual "0"
+
+output:
+  eval_dir: "{{.eval_dir}}"

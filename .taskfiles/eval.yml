@@ -1,0 +1,56 @@
+version: '3'
+
+vars:
+  TEST_DIR: '{{.ROOT_DIR}}/.test-output'
+  EVALS_DIR: '{{.ROOT_DIR}}/evals'
+  LINT_SCRIPT: '{{.ROOT_DIR}}/.claude/skills/venom/lint.sh'
+  SKILL_FILE: '{{.ROOT_DIR}}/.claude/skills/venom/SKILL.md'
+
+tasks:
+  default:
+    silent: true
+    cmd: task eval --list
+
+  validate:
+    desc: Validate eval infrastructure without running evals (checks files, lint, JSON)
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - test -f "{{.EVALS_DIR}}/evals.venom.yml"
+      - test -d "{{.EVALS_DIR}}/lib"
+      - bash "{{.LINT_SCRIPT}}" "{{.EVALS_DIR}}"
+      - jq empty "{{.EVALS_DIR}}/evals.json"
+      - mkdir -p "{{.TEST_DIR}}"
+
+  test:
+    desc: Run all LLM evals via Venom
+    deps: [validate]
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - task: _venom-run
+
+  run:
+    desc: Run a single eval by ID (e.g. task eval:run -- 2)
+    deps: [validate]
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - task: _venom-run
+        vars:
+          EVAL_ID: '{{.CLI_ARGS}}'
+
+  list:
+    desc: List eval cases
+    cmd: jq -r '.evals[] | "  \(.id). \(.prompt | .[0:80])..."' "{{.EVALS_DIR}}/evals.json"
+
+  _venom-run:
+    internal: true
+    dir: "{{.ROOT_DIR}}"
+    cmd: >-
+      venom run "{{.EVALS_DIR}}/evals.venom.yml"
+      --lib-dir "{{.EVALS_DIR}}/lib"
+      --var root="{{.ROOT_DIR}}"
+      --var test_dir="{{.TEST_DIR}}"
+      --var skill_file="{{.SKILL_FILE}}"
+      --var lint="{{.LINT_SCRIPT}}"
+      --var evals_json="{{.EVALS_DIR}}/evals.json"
+      {{- if .EVAL_ID}} --var eval_id="{{.EVAL_ID}}"{{end}}
+      --output-dir="{{.TEST_DIR}}"

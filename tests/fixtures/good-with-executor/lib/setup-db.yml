@@ -1,0 +1,12 @@
+executor: setup-db
+input:
+  db_url: ""
+
+steps:
+  - type: exec
+    script: echo "Setting up database at {{.input.db_url}}"
+    assertions:
+      - result.code ShouldEqual 0
+
+output:
+  status: "ok"

@@ -1,0 +1,22 @@
+version: '3'
+
+vars:
+  LINT_SCRIPT: '{{.ROOT_DIR}}/.claude/skills/venom/lint.sh'
+
+tasks:
+  default:
+    silent: true
+    cmd: task dev --list
+
+  test:
+    desc: Run CI-safe tests (lint script + fixtures)
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - mkdir -p .test-output
+      - venom run "{{.ROOT_DIR}}/tests/" --var root="{{.ROOT_DIR}}" --output-dir=".test-output"
+
+  lint:
+    desc: Run lint script against this project's Venom files
+    cmds:
+      - bash "{{.LINT_SCRIPT}}" "{{.ROOT_DIR}}/tests"
+      - bash "{{.LINT_SCRIPT}}" "{{.ROOT_DIR}}/evals"

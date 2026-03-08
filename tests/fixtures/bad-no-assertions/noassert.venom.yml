@@ -1,0 +1,9 @@
+name: Missing assertions
+vars:
+  root: "."
+
+testcases:
+  - name: No assertions on exec
+    steps:
+      - type: exec
+        script: echo "hello"

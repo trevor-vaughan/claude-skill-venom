@@ -1,0 +1,99 @@
+name: LLM Eval Suite for Venom Skill
+vars:
+  root: "."
+  test_dir: "{{.root}}/.test-output"
+  skill_file: "{{.root}}/.claude/skills/venom/SKILL.md"
+  lint: "{{.root}}/.claude/skills/venom/lint.sh"
+  evals_json: "{{.root}}/evals/evals.json"
+  eval_id: "0"
+
+testcases:
+  - name: "Eval 1 - REST API tests"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 1"
+    steps:
+      - type: eval-run
+        id: "1"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty
+
+  - name: "Eval 2 - CLI tool tests"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 2"
+    steps:
+      - type: eval-run
+        id: "2"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty
+
+  - name: "Eval 3 - User executor with 5 cases"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 3"
+    steps:
+      - type: eval-run
+        id: "3"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty
+
+  - name: "Eval 4 - Database migration tests"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 4"
+    steps:
+      - type: eval-run
+        id: "4"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty
+
+  - name: "Eval 5 - Auth signup flow tests"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 5"
+    steps:
+      - type: eval-run
+        id: "5"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty
+
+  - name: "Eval 6 - Config file validation tests"
+    skip:
+      - "{{.eval_id}} ShouldNotEqual 0"
+      - "{{.eval_id}} ShouldNotEqual 6"
+    steps:
+      - type: eval-run
+        id: "6"
+        root: "{{.root}}"
+        test_dir: "{{.test_dir}}"
+        skill_file: "{{.skill_file}}"
+        lint: "{{.lint}}"
+        evals_json: "{{.evals_json}}"
+        assertions:
+          - result.eval_dir ShouldNotBeEmpty

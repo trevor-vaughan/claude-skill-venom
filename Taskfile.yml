@@ -1,0 +1,34 @@
+version: '3'
+
+includes:
+  dev:
+    taskfile: .taskfiles/dev.yml
+  eval:
+    taskfile: .taskfiles/eval.yml
+
+tasks:
+  default:
+    silent: true
+    cmd: task --list
+
+  test:
+    desc: Run CI-safe tests (shortcut)
+    cmds:
+      - task: dev:test
+
+  lint:
+    desc: Run lint script against this project's Venom files (shortcut)
+    cmds:
+      - task: dev:lint
+
+  check:
+    desc: Run all CI-safe quality gates
+    deps: [lint, test]
+
+  install:
+    desc: Install skill into ~/.claude/skills/ via symlink
+    cmd: bash "{{.ROOT_DIR}}/scripts/install.sh" "{{.ROOT_DIR}}/.claude/skills"
+
+  clean:
+    desc: Remove test output artifacts
+    cmd: rm -rf "{{.ROOT_DIR}}/.test-output"

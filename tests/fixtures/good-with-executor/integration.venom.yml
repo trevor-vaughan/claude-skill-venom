@@ -1,0 +1,12 @@
+name: Integration tests with user executor
+vars:
+  root: "."
+  db_url: "postgres://localhost:5432/test"
+
+testcases:
+  - name: Database setup works
+    steps:
+      - type: setup-db
+        db_url: "{{.db_url}}"
+        assertions:
+          - result.code ShouldEqual 0
