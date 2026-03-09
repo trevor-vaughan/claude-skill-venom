@@ -15,6 +15,7 @@ These are patterns the model often generates incorrectly. Check your output agai
 | `range` with `{{.value}}` in `script:` blocks | User-defined executors for parameterized tests (range vars don't interpolate in scripts in v1.3) |
 | Exec step without `assertions:` | Every step asserts on at least `result.code ShouldEqual 0` |
 | `script: some-cmd; true` or `script: some-cmd \|\| true` | Removes all signal from the exit code — assertions on `result.code` become meaningless. Fix the root cause or restructure the test instead |
+| Stub/placeholder test with only `result.code ShouldEqual 0` | A test that passes without checking anything meaningful is worse than no test — it creates false confidence. Write a real assertion, or make the stub fail explicitly with `exit 1` so it stays visible |
 | Hardcoded paths in scripts (`/home/user/...`) | Suite-level `vars:` with overridable defaults, reference as `{{.root}}` |
 | `grep` in script to check output | `result.systemout ShouldContainSubstring "expected"` |
 | Inline multiline test logic (>5 lines in script) | Extract to user executor in `lib/` |
@@ -39,6 +40,18 @@ These are patterns the model often generates incorrectly. Check your output agai
 8. Do NOT use `range` with `{{.value}}` in `script:` blocks — values don't interpolate in Venom v1.3. Use user executors or explicit test cases instead.
 9. Pass project root as `--var root=<path>` when running suites. Reference as `{{.root}}` in scripts.
 10. For multi-step scripts (>5 lines), extract to a user-defined executor in `lib/`.
+11. **Never write a test that passes without checking something meaningful.** A test asserting only `result.code ShouldEqual 0` on a trivial command is a false green. If you cannot implement a proper test yet, write an explicit stub that fails:
+    ```yaml
+    - name: "TODO: verify output format"
+      steps:
+        - type: exec
+          script: |
+            echo "TODO: not yet implemented"
+            exit 1
+          assertions:
+            - result.code ShouldEqual 0  # fails until implemented
+    ```
+    This keeps stubs visible as failures in CI rather than silent passes.
 
 ## COMMON PATTERNS — templates for frequent test types
 
@@ -181,62 +194,25 @@ Called from a test suite:
 
 ### exec (default)
 
-The default executor. Runs shell commands.
+Runs shell commands. Standard result fields: `result.code`, `result.systemout`, `result.systemerr`.
 
-| Input | Description |
-|-------|-------------|
-| `script` | Shell command or multiline script (use `script: |` for multiline) |
-
-| Result Field | Description |
-|-------------|-------------|
-| `result.code` | Exit code (integer) |
-| `result.systemout` | Stdout (string) |
-| `result.systemoutjson` | Stdout parsed as JSON (object) |
-| `result.systemerr` | Stderr (string) |
-| `result.systemerrjson` | Stderr parsed as JSON (object) |
-| `result.timeseconds` | Execution duration (float) |
+Non-obvious: `result.systemoutjson` / `result.systemerrjson` — stdout/stderr auto-parsed as JSON when output is valid JSON.
 
 ### http
 
-Makes HTTP requests.
+Makes HTTP requests. Required input: `url`. Standard inputs: `method`, `headers`, `body`, `bodyFile`, `basic_auth_user`/`basic_auth_password`, `ignore_verify_ssl`, `timeout`.
 
-| Input | Description |
-|-------|-------------|
-| `url` | Endpoint URL (required) |
-| `method` | HTTP verb: GET, POST, PUT, DELETE, PATCH (default: GET) |
-| `headers` | Request headers (object) |
-| `body` | Request payload (string) |
-| `bodyFile` | Request payload from file path |
-| `basic_auth_user` / `basic_auth_password` | Basic auth credentials |
-| `ignore_verify_ssl` | Skip SSL verification (boolean) |
-| `timeout` | Request timeout in seconds |
+Result fields: `result.statuscode`, `result.body`, `result.bodyjson`, `result.headers`.
 
-| Result Field | Description |
-|-------------|-------------|
-| `result.statuscode` | HTTP status code (integer) |
-| `result.body` | Response body (string) |
-| `result.bodyjson` | Response body parsed as JSON (object, keys lowercased) |
-| `result.headers` | Response headers (object) |
-| `result.timeseconds` | Duration (float) |
-
-**JSON access notes:**
-- JSON keys are auto-lowercased: `result.bodyjson.mykey`
-- Array elements use indexed naming: `result.bodyjson.items.items0.name` (first element), `result.bodyjson.items.items1.name` (second)
+**JSON access gotchas:**
+- Keys are auto-lowercased: `result.bodyjson.mykey`
+- Array elements use indexed naming: `result.bodyjson.items.items0.name` (first), `result.bodyjson.items.items1.name` (second)
 
 ### readfile
 
-Reads file contents.
+Input: `path` (supports glob). Result fields: `result.content`, `result.contentjson`.
 
-| Input | Description |
-|-------|-------------|
-| `path` | File path (string, supports glob patterns) |
-
-| Result Field | Description |
-|-------------|-------------|
-| `result.content` | File text content (string) |
-| `result.contentjson` | Content parsed as JSON (object) |
-| `result.size.<filename>` | File size in bytes (`<filename>` is the base filename of the matched file) |
-| `result.md5sum.<filename>` | MD5 hash (`<filename>` is the base filename of the matched file) |
+Non-obvious: `result.size.<filename>` and `result.md5sum.<filename>` — `<filename>` is the base filename of the matched file, not a literal.
 
 ### User-defined executors
 
@@ -265,53 +241,24 @@ output:
 - Vars captured in steps are available in later steps and in `output:`
 - Output vars are accessible by the calling test case in `result.<key>`
 
-### Other executors (summary)
+### Other built-in executor types
 
-| Type | Purpose | Key Fields |
-|------|---------|------------|
-| `sql` | Run SQL queries | `driver`, `dsn`, `commands` |
-| `dbfixtures` | Database setup/teardown | `database`, `dsn`, `schemas`, `folder` |
-| `redis` | Redis commands | `dialURL`, `commands` |
-| `kafka` | Kafka produce/consume | `addrs`, `clientType`, `messages`/`topics` |
-| `rabbitmq` | RabbitMQ pub/sub | `addrs`, `clientType`, `qName` |
-| `amqp` | AMQP messaging | `addr`, `clientType` |
-| `mqtt` | MQTT pub/sub | `clientType`, `client_id` |
-| `smtp` | Send email | `host`, `port`, `from`, `to`, `body` |
-| `imap` | Read email | `host`, `port`, `user`, `password` |
-| `ssh` | Remote commands | `host`, `command`, `user`, `password`/`privatekey` |
-| `grpc` | gRPC calls | `url`, `service`, `method`, `data` |
-| `web` | Browser automation | `driver`, `url`, actions (navigate, click, fill) |
-| `ovhapi` | OVH API calls | `endpoint`, `method`, `path` |
+`sql`, `dbfixtures`, `redis`, `kafka`, `rabbitmq`, `amqp`, `mqtt`, `smtp`, `imap`, `ssh`, `grpc`, `web`, `ovhapi` — refer to Venom docs for input fields.
 
 ## ASSERTION REFERENCE
 
-### Assertion keywords
+### Less-obvious assertion keywords
+
+Standard comparisons (`ShouldEqual`, `ShouldNotEqual`, numeric comparisons, `ShouldBeNil`, etc.) work as expected. Less obvious ones:
 
 | Assertion | Description |
 |-----------|-------------|
-| `ShouldEqual` | Exact equality |
-| `ShouldNotEqual` | Not equal |
 | `ShouldAlmostEqual` | Approximate numeric equality |
-| `ShouldBeNil` / `ShouldNotBeNil` | Nil check |
-| `ShouldBeTrue` / `ShouldBeFalse` | Boolean check |
-| `ShouldBeZeroValue` | Zero value check |
-| `ShouldBeGreaterThan` | Numeric greater than |
-| `ShouldBeGreaterThanOrEqualTo` | Numeric >= |
-| `ShouldBeLessThan` | Numeric less than |
-| `ShouldBeLessThanOrEqualTo` | Numeric <= |
-| `ShouldBeBetween` | In numeric range (exclusive) |
-| `ShouldBeBetweenOrEqual` | In numeric range (inclusive) |
-| `ShouldContain` | Collection contains element |
-| `ShouldNotContain` | Collection does not contain |
 | `ShouldContainKey` | Map contains key |
-| `ShouldContainSubstring` | String contains substring |
-| `ShouldNotContainSubstring` | String does not contain |
+| `ShouldContainSubstring` / `ShouldNotContainSubstring` | String substring check |
 | `ShouldStartWith` / `ShouldEndWith` | String prefix/suffix |
 | `ShouldMatchRegex` | Regex match |
-| `ShouldBeEmpty` / `ShouldNotBeEmpty` | Empty check |
 | `ShouldHaveLength` | Collection/string length |
-| `ShouldBeIn` / `ShouldNotBeIn` | Value in set |
-| `ShouldBeBlank` / `ShouldNotBeBlank` | Whitespace-only check |
 | `ShouldEqualTrimSpace` | Equal after trimming whitespace |
 | `ShouldJSONEqual` | JSON structural equality |
 | `ShouldJSONContain` | JSON contains subset |
@@ -361,12 +308,6 @@ vars:
 - `{{.venom.timestamp}}` — Unix timestamp
 - `{{.venom.datetime}}` — formatted datetime
 
-### Template functions
-
-`upper`, `lower`, `trim`, `replace`, `default`, `b64enc`, `b64dec`, `toJSON`
-
-Example: `{{.myvar | upper}}`, `{{.url | default "http://localhost"}}`
-
 ## Automated lint — run AFTER every file you create or edit
 
 A lint script validates all deterministic structural rules. Run it after creating or editing any `.venom.yml` or `lib/*.yml` file, and fix every failure before finishing:
@@ -384,7 +325,8 @@ If the lint script is not available at `.claude/skills/venom/lint.sh`, check `~/
 After the lint passes, verify these by inspection:
 
 - [ ] Test cases cover both positive and negative scenarios
-- [ ] Assertions check meaningful values, not just exit codes
+- [ ] Assertions check meaningful values, not just exit codes — a test that only asserts `result.code ShouldEqual 0` on a trivial command is a false green
+- [ ] No stub tests that silently pass — any unimplemented test must fail explicitly (via `exit 1`) until it is properly written
 - [ ] Variables used for all configurable values (URLs, paths, credentials)
 - [ ] User executors used for repeated multi-step patterns
 - [ ] Step results captured in vars when needed by subsequent steps

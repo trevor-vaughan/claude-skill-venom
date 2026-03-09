@@ -1,6 +1,5 @@
-.claude/
-!.claude/skills/
-!.claude/skills/**
+.claude/*
+!.claude/skills
 taskfile-workspace/
 .test-output/
 __pycache__/
