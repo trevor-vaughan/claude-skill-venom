@@ -27,6 +27,7 @@ These are patterns the model often generates incorrectly. Check your output agai
 | `venom run suite.yml` without `--lib-dir` when using user executors | `venom run suite.yml --lib-dir path/to/lib` — Venom resolves `lib/` from the **working directory**, not the suite file's directory |
 | Passing `--var` derived from other vars (e.g. `evals_json: "{{.root}}/evals/evals.json"`) and expecting CLI `--var root=` to be used | Venom evaluates `vars:` block template expressions using the **default** value of referenced vars, not CLI-overridden values. Pass all path vars as fully-resolved absolute values directly from the Taskfile (e.g. `--var evals_json="{{.EVALS_DIR}}/evals.json"`) |
 | Relative paths used after a `cd` in an exec script | Exec steps start with CWD = the `venom run` invocation dir, but any `cd` mid-script changes CWD for everything after it — including command substitutions like `$(cat relative/path)`. Always use **absolute paths** for files accessed after a `cd`, or capture them into variables before the `cd` |
+| `skip:` with literal strings like `"yes ShouldEqual yes"` or `"{{.var}} ShouldEqual val"` | The first operand in `skip:` assertions is a **variable name** (key lookup), NOT a literal or template expression. Use bare var names: `"my_var ShouldEqual expected_value"`. The skip defines a precondition — if the assertion fails (var doesn't match), the test is SKIPPED |
 
 ## MANDATORY RULES — apply to EVERY file you create or edit
 
@@ -189,6 +190,32 @@ Called from a test suite:
           - result.code ShouldNotEqual 0
           - result.systemerr ShouldContainSubstring "unknown flag"
 ```
+
+### Conditional skip (environment-dependent test)
+
+The `skip:` field uses assertions where the **first operand is a variable name** (key lookup, NOT a literal or template expression). The assertion defines a precondition — if it fails, the test is skipped.
+
+```yaml
+name: My test suite
+vars:
+  root: "."
+  in_container: "no"  # override with --var in_container=yes
+
+testcases:
+  - name: "Feature only available in container [container-only]"
+    skip:
+      - "in_container ShouldEqual yes"
+    steps:
+      - type: exec
+        script: "{{.root}}/bin/container-feature --check"
+        assertions:
+          - result.code ShouldEqual 0
+```
+
+**Key points:**
+- First operand is a bare var name: `"my_var ShouldEqual value"` — NOT `"{{.my_var}} ShouldEqual value"`
+- Skip triggers when the assertion FAILS (precondition not met)
+- `"in_container ShouldEqual yes"` means "requires in_container=yes; skip otherwise"
 
 ## EXECUTOR REFERENCE
 
